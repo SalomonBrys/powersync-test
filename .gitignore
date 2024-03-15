@@ -1,0 +1,13 @@
+### Gradle ###
+.gradle
+build/
+.gradletasknamecache
+
+### IntelliJ IDEA ###
+.idea
+
+### Fleet ###
+.fleet
+
+### Mac OS ###
+.DS_Store

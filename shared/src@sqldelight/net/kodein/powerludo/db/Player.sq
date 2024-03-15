@@ -1,0 +1,27 @@
+CREATE TABLE Player (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    name TEXT NOT NULL
+);
+
+selectAll:
+SELECT *
+FROM Player
+ORDER BY name
+;
+
+select:
+SELECT *
+FROM Player
+WHERE id = ?
+;
+
+insert:
+INSERT
+INTO Player (name)
+VALUES (?);
+
+delete:
+DELETE
+FROM Player
+WHERE id = ?
+;

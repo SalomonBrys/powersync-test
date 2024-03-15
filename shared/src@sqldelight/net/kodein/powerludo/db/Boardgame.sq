@@ -1,0 +1,29 @@
+CREATE TABLE Boardgame (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    name TEXT NOT NULL,
+    isCoop INTEGER AS kotlin.Boolean NOT NULL
+);
+
+selectAll:
+SELECT *
+FROM Boardgame
+ORDER BY name
+;
+
+select:
+SELECT *
+FROM Boardgame
+WHERE id = ?
+;
+
+insert:
+INSERT
+INTO Boardgame(name, isCoop)
+VALUES (?, ?)
+;
+
+delete:
+DELETE
+FROM Boardgame
+WHERE id = ?
+;
