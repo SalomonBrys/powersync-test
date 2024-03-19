@@ -18,9 +18,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import net.kodein.powerludo.business.model.Boardgame
 import net.kodein.powerludo.ctrl.Boardgames
 import net.kodein.powerludo.ctrl.MviIntentEmitter
-import net.kodein.powerludo.db.Boardgame
 
 
 @Composable
@@ -33,11 +33,12 @@ fun BoardgameIcon(boardgame: Boardgame, modifier: Modifier = Modifier) {
 fun BoardgameList(
     list: List<Boardgame>,
     onClick: (Boardgame) -> Unit,
+    modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
     size: ListSize = ListSize.Big
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         state = state
     ) {
         items(
@@ -140,12 +141,13 @@ fun Boardgames(model: Boardgames.Model, emit: MviIntentEmitter<Boardgames.Intent
                 expanded = !lazyListState.canScrollBackward && !lazyListState.isScrollInProgress
             )
         }
-    ) {
+    ) { padding ->
         val navigator = LocalNavigator.currentOrThrow
         BoardgameList(
             list = model.boardgames,
             onClick = { navigator.push(BoardgameScreen(it)) },
-            state = lazyListState
+            state = lazyListState,
+            modifier = Modifier.padding(padding)
         )
     }
 }

@@ -2,16 +2,21 @@ product:
     type: lib
     platforms: [android, iosArm64, iosSimulatorArm64, iosX64]
 
+repositories:
+  - id: jitpack
+    url: https://jitpack.io
+
 dependencies:
     - $compose.foundation: exported
     - $compose.material3: exported
     - $compose.materialIconsExtended: exported
-    - app.cash.sqldelight:coroutines-extensions:2.0.1
     - org.kodein.di:kodein-di:7.21.2
     - org.kodein.di:kodein-di-framework-compose:7.21.2
     - org.jetbrains.kotlinx:kotlinx-datetime:0.6.0-RC.2
     - cafe.adriel.voyager:voyager-navigator:1.0.0
     - cafe.adriel.voyager:voyager-transitions:1.0.0
+    - com.powersync:core:0.0.1-ALPHA4
+    - com.powersync:connector-supabase:0.0.1-ALPHA4
 
 dependencies@android:
     - app.cash.sqldelight:android-driver:2.0.1
@@ -22,3 +27,6 @@ dependencies@ios:
 settings:
     compose:
         enabled: true
+    android:
+        compileSdk: 34
+        minSdk: 26

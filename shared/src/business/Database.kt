@@ -1,123 +1,345 @@
 package net.kodein.powerludo.business
 
-import androidx.compose.runtime.Composable
-import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToList
-import app.cash.sqldelight.coroutines.mapToOneOrNull
-import app.cash.sqldelight.db.QueryResult
-import app.cash.sqldelight.db.SqlDriver
-import app.cash.sqldelight.db.SqlSchema
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.withContext
-import net.kodein.powerludo.db.Boardgame
-import net.kodein.powerludo.db.Game
-import net.kodein.powerludo.db.LudoDB
-import net.kodein.powerludo.db.Player
+import com.powersync.DatabaseDriverFactory
+import com.powersync.PowerSyncBuilder
+import com.powersync.connector.supabase.SupabaseConnector
+import com.powersync.db.schema.Column
+import com.powersync.db.schema.IndexedColumn
+import com.powersync.db.schema.Table
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import net.kodein.powerludo.business.model.Boardgame
+import net.kodein.powerludo.business.model.Game
+import net.kodein.powerludo.business.model.Player
+import net.kodein.powerludo.business.utils.Index
+import net.kodein.powerludo.business.utils.Schema
 
 
-@Composable
-expect fun rememberSqliteDriver(schema: SqlSchema<QueryResult.Value<Unit>>, name: String): SqlDriver
+@OptIn(DelicateCoroutinesApi::class)
+class Database(
+    driverFactory: DatabaseDriverFactory,
+//    scope: CoroutineScope
+): CoroutineScope by GlobalScope {
 
-class Database(driver: SqlDriver) {
-    private val db = LudoDB(driver)
-    
-    fun boardgames() =
-        db.boardgameQueries.selectAll()
-            .asFlow()
-            .mapToList(Dispatchers.IO)
+    private val database =
+    PowerSyncBuilder
+        .from(
+            factory = driverFactory,
+            schema = Schema(
+                Table(
+                    name = "boardgame",
+                    columns = listOf(
+                        Column.text("name"), // text
+                        Column.integer("is_coop"), // boolean
+                        ),
+                    indexes = listOf(
+                        Index("name", IndexedColumn.ascending("name"))
+                    )
+                ),
+                Table(
+                    name = "game",
+                    columns = listOf(
+                        Column.text("boardgame_id"), // uuid
+                        Column.integer("date"), // date
+                        ),
+                    indexes = listOf(
+                        Index("date", IndexedColumn.descending("date")),
+                        Index("boardgame_id", IndexedColumn("boardgame_id"))
+                    )
+                ),
+                Table(
+                    name = "player",
+                    columns = listOf(
+                        Column.text("name"), // text
+                        ),
+                    indexes = listOf(
+                        Index("name", IndexedColumn.ascending("name"))
+                    )
+                ),
+                Table(
+                    name = "game_player",
+                    columns = listOf(
+                        Column.text("game_id"), // uuid
+                        Column.text("player_id"), // uuid
+                        Column.integer("winner"), // boolean
+                        ),
+                    indexes = listOf(
+                        Index("game_id", IndexedColumn("game_id")),
+                        Index("player_id", IndexedColumn("player_id"))
+                    )
+                ),
+                )
+        )
+        //        .scope(scope)
+        .build()
 
-    fun boardgame(id: Long) =
-        db.boardgameQueries.select(id)
-            .asFlow()
-            .mapToOneOrNull(Dispatchers.IO)
-    
-    suspend fun addBoardgame(name: String, isCoop: Boolean) =
-        withContext(Dispatchers.IO) {
-            db.boardgameQueries.insert(name, isCoop)
-        }
-    
-    suspend fun deleteBoardgame(id: Long) {
-        withContext(Dispatchers.IO) {
-            db.transaction {
-                db.gamePlayerQueries.deleteForBoardGame(id)
-                db.gameQueries.deleteForBoardgame(id)
-                db.boardgameQueries.delete(id)
-            }
+    init {
+        launch {
+            database.connect(
+                SupabaseConnector(
+                    supabaseUrl = "https://axvxgfwwlwjvjhtloygz.supabase.co",
+                    supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4dnhnZnd3bHdqdmpodGxveWd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTAwODM3NDYsImV4cCI6MjAyNTY1OTc0Nn0.3n-LKLDnhdjCDUbSAC1J3hs4mAgbiJca702QzkG1zq8",
+                    powerSyncEndpoint = "https://65f83ef9bae72d5b698f31aa.powersync.journeyapps.com"
+                )
+            )
         }
     }
 
-    fun players() =
-        db.playerQueries.selectAll()
-            .asFlow()
-            .mapToList(Dispatchers.IO)
-
-    fun player(id: Long) =
-        db.playerQueries.select(id)
-            .asFlow()
-            .mapToOneOrNull(Dispatchers.IO)
-    
-    suspend fun addPlayer(name: String) =
-        withContext(Dispatchers.IO) {
-            db.playerQueries.insert(name)
+    fun boardgames(): Flow<List<Boardgame>> =
+        database.watch(
+            sql = """
+                SELECT *
+                FROM boardgame
+                ORDER BY name
+            """
+        ) {
+            Boardgame(
+                id = it.getString(0)!!,
+                name = it.getString(1)!!,
+                isCoop = it.getBoolean(2)!!
+            )
         }
 
-    suspend fun deletePlayer(id: Long) {
-        withContext(Dispatchers.IO) {
-            db.transaction {
-                db.gamePlayerQueries.deleteForPlayer(id)
-                db.playerQueries.delete(id)
-            }
+    fun boardgame(id: String): Flow<Boardgame?> =
+        database.watch(
+            sql = """
+                SELECT *
+                FROM boardgame
+                WHERE id = ?
+            """,
+            parameters = listOf(id)
+        ) {
+            Boardgame(
+                id = it.getString(0)!!,
+                name = it.getString(1)!!,
+                isCoop = it.getBoolean(2)!!
+            )
+        }.map { it.firstOrNull() }
+
+    suspend fun addBoardgame(name: String, isCoop: Boolean) {
+        database.execute(
+            sql = "INSERT INTO boardgame (id, name, is_coop), VALUES (uuid(), ?, ?)",
+            parameters = listOf(name, isCoop)
+        )
+    }
+
+    suspend fun deleteBoardgame(id: String) {
+        database.writeTransaction {
+            database.execute(
+                sql = """
+                    DELETE
+                    FROM game_player
+                    WHERE game_id IN (
+                        SELECT id
+                        FROM game
+                        WHERE boardgame_id = ?
+                    )
+                """,
+                parameters = listOf(id)
+            )
+            database.execute(
+                sql = """
+                    DELETE
+                    FROM game
+                    WHERE boardgame_id = ?
+                """,
+                parameters = listOf(id)
+            )
+            database.execute(
+                sql = """
+                    DELETE
+                    FROM boardgame
+                    WHERE id = ?
+                """,
+                parameters = listOf(id)
+            )
         }
     }
 
-    fun games() =
-        db.gameQueries.selectAll()
-            .asFlow()
-            .mapToList(Dispatchers.IO)
+    fun players(): Flow<List<Player>> =
+        database.watch(
+            sql = """
+                SELECT *
+                FROM player
+                ORDER BY name
+            """
+        ) {
+            Player(
+                id = it.getString(0)!!,
+                name = it.getString(1)!!
+            )
+        }
 
-    fun boardgameGames(boardgameId: Long) =
-        db.gameQueries.selectForBoardgame(boardgameId)
-            .asFlow()
-            .mapToList(Dispatchers.IO)
+    fun player(id: String): Flow<Player?> =
+        database.watch(
+            sql = """
+                SELECT *
+                FROM player
+                WHERE id = ?
+            """,
+            parameters = listOf(id)
+        ) {
+            Player(
+                id = it.getString(0)!!,
+                name = it.getString(1)!!
+            )
+        }.map { it.first() }
 
-    fun playerGames(playerId: Long) =
-        db.gamePlayerQueries
-            .selectGamesForPlayer(playerId) { id, bgId, date, bgName, bgIsCoop ->
-                Game(id, bgId, date) to Boardgame(bgId, bgName, bgIsCoop)
-            }
-            .asFlow()
-            .mapToList(Dispatchers.IO)
-    
-    fun gamePlayers(gameId: Long) =
-        db.gamePlayerQueries
-            .selectPlayersForGame(gameId) { id, name, winner ->
-                Player(id, name) to winner
-            }
-            .asFlow()
-            .mapToList(Dispatchers.IO)
-    
-    suspend fun addGame(
-        boardgameId: Long,
-        date: Long,
-        players: List<Pair<Long, Boolean>>
-    ) =
-        withContext(Dispatchers.IO) {
-            db.transaction {
-                db.gameQueries.insert(boardgameId, date)
-                val gameId = db.gameQueries.lastId().executeAsOne().id!!
-                players.forEach { (playerId, winner) ->
-                    db.gamePlayerQueries.insert(gameId, playerId, winner)
-                }
+    suspend fun addPlayer(name: String) {
+        database.execute(
+            sql = """
+                INSERT
+                INTO player (id, name)
+                VALUES (uuid(), ?)
+            """,
+            parameters = listOf(name)
+        )
+    }
+
+    suspend fun deletePlayer(id: String) {
+        database.writeTransaction {
+            database.execute(
+                sql = """
+                    DELETE
+                    FROM game_player
+                    WHERE player_id = ?
+                """,
+                parameters = listOf(id)
+            )
+            database.execute(
+                sql = """
+                    DELETE
+                    FROM player
+                    WHERE id = ?
+                """,
+                parameters = listOf(id)
+            )
+        }
+    }
+
+    fun games(): Flow<List<Game>> =
+        database.watch(
+            sql = """
+                SELECT *
+                FROM game
+                ORDER BY date DESC
+            """
+        ) {
+            Game(
+                id = it.getString(0)!!,
+                boardgameId = it.getString(1)!!,
+                date = it.getLong(2)!!
+            )
+        }
+
+    fun boardgameGames(boardgameId: String): Flow<List<Game>> =
+        database.watch(
+            sql = """
+                SELECT *
+                FROM game
+                WHERE boardgame_id = ?
+            """,
+            parameters = listOf(boardgameId)
+        ) {
+            Game(
+                id = it.getString(0)!!,
+                boardgameId = it.getString(1)!!,
+                date = it.getLong(2)!!
+            )
+        }
+
+    fun playerGames(playerId: String): Flow<List<Pair<Game, Boardgame>>> =
+        database.watch(
+            sql = """
+                SELECT game.*, boardgame.name, boardgame.is_coop
+                FROM game_player
+                INNER JOIN game ON game.id = game_player.game_id
+                INNER JOIN boardgame ON boardgame.id = game.boardgame_id
+                WHERE player_id = ?
+                ORDER BY game.date
+            """,
+            parameters = listOf(playerId)
+        ) {
+            Pair(
+                Game(
+                    id = it.getString(0)!!,
+                    boardgameId = it.getString(1)!!,
+                    date = it.getLong(2)!!
+                ),
+                Boardgame(
+                    id = it.getString(1)!!,
+                    name = it.getString(3)!!,
+                    isCoop = it.getBoolean(4)!!,
+                )
+            )
+        }
+
+    fun gamePlayers(gameId: String): Flow<List<Pair<Player, Boolean>>> =
+        database.watch(
+            sql = """
+                SELECT player.*, winner
+                FROM game_player
+                INNER JOIN player ON player.id = game_player.player_id
+                WHERE game_id = ?
+                ORDER BY player.name
+            """,
+            parameters = listOf(gameId)
+        ) {
+            Pair(
+                Player(
+                    id = it.getString(0)!!,
+                    name = it.getString(1)!!
+                ),
+                it.getBoolean(2)!!
+            )
+        }
+
+    suspend fun addGame(boardgameId: String, date: Long, players: List<Pair<String, Boolean>>) {
+        val id = database.get("SELECT uuid()") { it.getString(0)!! }
+        database.writeTransaction {
+            database.execute(
+                sql = """
+                    INSERT
+                    INTO game (id, boardgame_id, date)
+                    VALUES (?, ?, ?)
+                """,
+                parameters = listOf(id, boardgameId, date)
+            )
+            players.forEach { (playerId, winner) ->
+                database.execute(
+                    sql = """
+                        INSERT
+                        INTO game_player (game_id, player_id, winner)
+                        VALUES (?, ?, ?)
+                    """,
+                    parameters = listOf(id, playerId, winner)
+                )
             }
         }
+    }
     
-    suspend fun deleteGame(id: Long) {
-        withContext(Dispatchers.IO) {
-            db.transaction {
-                db.gamePlayerQueries.deleteForGame(id)
-                db.gameQueries.delete(id)
-            }
+    suspend fun deleteGame(id: String) {
+        database.writeTransaction {
+            database.execute(
+                sql = """
+                    DELETE
+                    FROM game_player
+                    WHERE game_id = ?
+                """,
+                parameters = listOf(id)
+            )
+            database.execute(
+                sql = """
+                    DELETE
+                    FROM game
+                    WHERE id = ?
+                """,
+                parameters = listOf(id)
+            )
         }
     }
 }

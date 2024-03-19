@@ -3,7 +3,7 @@ package net.kodein.powerludo.ctrl
 import androidx.compose.runtime.Composable
 import kotlinx.coroutines.launch
 import net.kodein.powerludo.business.Database
-import net.kodein.powerludo.db.Player
+import net.kodein.powerludo.business.model.Player
 import org.kodein.di.compose.localDI
 import org.kodein.di.instance
 

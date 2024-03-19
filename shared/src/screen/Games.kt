@@ -24,10 +24,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
+import net.kodein.powerludo.business.model.Boardgame
+import net.kodein.powerludo.business.model.Player
 import net.kodein.powerludo.ctrl.Games
 import net.kodein.powerludo.ctrl.MviIntentEmitter
-import net.kodein.powerludo.db.Boardgame
-import net.kodein.powerludo.db.Player
 import net.kodein.powerludo.utils.europeanFormat
 import net.kodein.powerludo.utils.toggle
 
@@ -122,10 +122,10 @@ private fun SelectBoardgame(
 @OptIn(ExperimentalMaterial3Api::class)
 private fun SelectPlayers(
     players: List<Player>,
-    selected: List<Long>,
-    onSelect: (Long) -> Unit,
-    winners: List<Long>,
-    onSetWinner: (Long, Boolean) -> Unit
+    selected: List<String>,
+    onSelect: (String) -> Unit,
+    winners: List<String>,
+    onSetWinner: (String, Boolean) -> Unit
 ) {
     var sheetShown by remember { mutableStateOf(false) }
 
@@ -198,8 +198,8 @@ private fun AddGameDialog(
             )
         }
         var boardgame: Boardgame? by remember { mutableStateOf(null) }
-        val players: MutableList<Long> = remember { mutableStateListOf() }
-        val winners: MutableList<Long> = remember { mutableStateListOf() }
+        val players: MutableList<String> = remember { mutableStateListOf() }
+        val winners: MutableList<String> = remember { mutableStateListOf() }
 
         Surface(modifier = Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxSize()) {
@@ -356,11 +356,11 @@ fun Games(model: Games.Model, emit: MviIntentEmitter<Games.Intent>) {
                 )
             }
         }
-    ) {
+    ) { padding ->
         GamesList(
             games = model.games,
             state = lazyListState,
-            modifier = Modifier.padding(it).fillMaxSize()
+            modifier = Modifier.padding(padding).fillMaxSize()
         )
     }
     

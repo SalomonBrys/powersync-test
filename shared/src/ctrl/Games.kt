@@ -6,8 +6,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 import net.kodein.powerludo.business.Database
-import net.kodein.powerludo.db.Boardgame
-import net.kodein.powerludo.db.Player
+import net.kodein.powerludo.business.model.Boardgame
+import net.kodein.powerludo.business.model.Player
 import org.kodein.di.compose.localDI
 import org.kodein.di.instance
 
@@ -15,7 +15,7 @@ import org.kodein.di.instance
 object Games {
 
     data class Game(
-        val id: Long,
+        val id: String,
         val date: LocalDate,
         val boardgame: Boardgame,
         val players: List<Pair<Player, Boolean>>
@@ -30,9 +30,9 @@ object Games {
     sealed interface Intent {
         data class Add(
             val date: LocalDate,
-            val boardgameId: Long,
-            val playerIds: List<Long>,
-            val winnerIds: List<Long>
+            val boardgameId: String,
+            val playerIds: List<String>,
+            val winnerIds: List<String>
         ): Intent
     }
     

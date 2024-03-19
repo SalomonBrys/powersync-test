@@ -20,9 +20,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import net.kodein.powerludo.business.model.Player
 import net.kodein.powerludo.ctrl.MviIntentEmitter
 import net.kodein.powerludo.ctrl.Players
-import net.kodein.powerludo.db.Player
 
 
 @Composable
@@ -32,7 +32,7 @@ fun PlayersList(
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
     size: ListSize = ListSize.Big,
-    selectedIds: List<Long> = emptyList()
+    selectedIds: List<String> = emptyList()
 ) {
     LazyColumn(
         modifier = modifier,
@@ -131,12 +131,12 @@ fun Players(model: Players.Model, emit: MviIntentEmitter<Players.Intent>) {
                 expanded = !lazyListState.canScrollBackward && !lazyListState.isScrollInProgress
             )
         }
-    ) {
+    ) { padding ->
         PlayersList(
             list = model.players,
             onClick = { navigator.push(PlayerScreen(it)) },
             state = lazyListState,
-            modifier = Modifier.padding(it).fillMaxSize()
+            modifier = Modifier.padding(padding).fillMaxSize()
         )
     }
 }

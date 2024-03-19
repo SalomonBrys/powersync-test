@@ -1,6 +1,9 @@
 package net.kodein.powerludo.screen
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -14,11 +17,11 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import net.kodein.powerludo.db.Player
+import net.kodein.powerludo.business.model.Player
 import net.kodein.powerludo.ctrl.Player as PlayerCtrl
 
 
-class PlayerScreen(val initial: Player) : Screen {
+class PlayerScreen(private val initial: Player) : Screen {
     
     override val key = uniqueScreenKey
 
@@ -79,10 +82,10 @@ class PlayerScreen(val initial: Player) : Screen {
                     }
                 )
             }
-        ) {
+        ) { padding ->
             GamesList(
                 games = model.games,
-                modifier = Modifier.padding(it).fillMaxSize()
+                modifier = Modifier.padding(padding).fillMaxSize()
             )
         }
     }

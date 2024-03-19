@@ -8,7 +8,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import net.kodein.powerludo.business.Database
-import net.kodein.powerludo.db.Player
+import net.kodein.powerludo.business.model.Player
 import org.kodein.di.compose.localDI
 import org.kodein.di.instance
 
