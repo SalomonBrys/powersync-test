@@ -54,12 +54,12 @@ class SupabaseConnector(
      * Get credentials for PowerSync.
      */
     override suspend fun fetchCredentials(): PowerSyncCredentials {
-        check(supabaseClient.auth.sessionStatus.value !is SessionStatus.Authenticated) { "Not Authenticated" }
+        check(supabaseClient.auth.sessionStatus.value is SessionStatus.Authenticated) { "Not Authenticated" }
 
         // Use Supabase token for PowerSync
         val session = supabaseClient.auth.currentSessionOrNull() ?: error("Could not fetch Supabase credentials");
 
-        check(session.user == null) { "No user data" }
+        check(session.user != null) { "No user data" }
 
         // userId and expiresAt are for debugging purposes only
         return PowerSyncCredentials(
