@@ -23,8 +23,7 @@ object Game {
         
         return Mvi(
             firstModel = { Model(game) }
-        ) { _, _ ->
-
+        ) {
             OnIntent {
                 when (it) {
                     Intent.Delete -> {

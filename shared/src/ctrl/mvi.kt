@@ -30,7 +30,7 @@ fun <I : Any> OnIntent(onIntent: suspend (I) -> Unit) = OnIntent<Any, I> { _, in
 fun <Model : Any, Intent : Any> Mvi(
     firstModel: () -> Model,
     dependsOn: List<Any> = emptyList(),
-    start: (MviModelEmitter<Model>, CoroutineScope) -> OnIntent<Model, Intent>
+    start: CoroutineScope.(MviModelEmitter<Model>) -> OnIntent<Model, Intent>
 ): MviViewComponents<Model, Intent> {
     return key(dependsOn) {
         val scope = rememberCoroutineScope()
@@ -44,7 +44,7 @@ fun <Model : Any, Intent : Any> Mvi(
 
         LaunchedEffect(null) {
             val modelEmitter: MviModelEmitter<Model> = { launch { modelTransformers.send(it) } }
-            val onIntent = start(modelEmitter, scope)
+            val onIntent = start(scope, modelEmitter)
             intents.consumeEach { onIntent.onIntent(model, it) }
         }
 

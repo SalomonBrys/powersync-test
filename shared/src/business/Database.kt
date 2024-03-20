@@ -2,13 +2,12 @@ package net.kodein.powerludo.business
 
 import com.powersync.DatabaseDriverFactory
 import com.powersync.PowerSyncBuilder
-import com.powersync.connector.supabase.SupabaseConnector
 import com.powersync.db.schema.Column
 import com.powersync.db.schema.IndexedColumn
 import com.powersync.db.schema.Table
+import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -17,75 +16,74 @@ import net.kodein.powerludo.business.model.Game
 import net.kodein.powerludo.business.model.Player
 import net.kodein.powerludo.business.utils.Index
 import net.kodein.powerludo.business.utils.Schema
+import net.kodein.powerludo.business.utils.SupabaseConnector
 
 
-@OptIn(DelicateCoroutinesApi::class)
 class Database(
     driverFactory: DatabaseDriverFactory,
-//    scope: CoroutineScope
-): CoroutineScope by GlobalScope {
+    supabaseClient: SupabaseClient,
+    scope: CoroutineScope
+): CoroutineScope by scope {
 
     private val database =
-    PowerSyncBuilder
-        .from(
-            factory = driverFactory,
-            schema = Schema(
-                Table(
-                    name = "boardgame",
-                    columns = listOf(
-                        Column.text("name"), // text
-                        Column.integer("is_coop"), // boolean
+        PowerSyncBuilder
+            .from(
+                factory = driverFactory,
+                schema = Schema(
+                    Table(
+                        name = "boardgame",
+                        columns = listOf(
+                            Column.text("name"), // text
+                            Column.integer("is_coop") // boolean
                         ),
-                    indexes = listOf(
-                        Index("name", IndexedColumn.ascending("name"))
-                    )
-                ),
-                Table(
-                    name = "game",
-                    columns = listOf(
-                        Column.text("boardgame_id"), // uuid
-                        Column.integer("date"), // date
+                        indexes = listOf(
+                            Index("name", IndexedColumn.ascending("name"))
+                        )
+                    ),
+                    Table(
+                        name = "game",
+                        columns = listOf(
+                            Column.text("boardgame_id"), // uuid
+                            Column.integer("date") // date
                         ),
-                    indexes = listOf(
-                        Index("date", IndexedColumn.descending("date")),
-                        Index("boardgame_id", IndexedColumn("boardgame_id"))
-                    )
-                ),
-                Table(
-                    name = "player",
-                    columns = listOf(
-                        Column.text("name"), // text
+                        indexes = listOf(
+                            Index("date", IndexedColumn.descending("date")),
+                            Index("boardgame_id", IndexedColumn("boardgame_id"))
+                        )
+                    ),
+                    Table(
+                        name = "player",
+                        columns = listOf(
+                            Column.text("name") // text
                         ),
-                    indexes = listOf(
-                        Index("name", IndexedColumn.ascending("name"))
-                    )
-                ),
-                Table(
-                    name = "game_player",
-                    columns = listOf(
-                        Column.text("game_id"), // uuid
-                        Column.text("player_id"), // uuid
-                        Column.integer("winner"), // boolean
+                        indexes = listOf(
+                            Index("name", IndexedColumn.ascending("name"))
+                        )
+                    ),
+                    Table(
+                        name = "game_player",
+                        columns = listOf(
+                            Column.text("game_id"), // uuid
+                            Column.text("player_id"), // uuid
+                            Column.integer("winner") // boolean
                         ),
-                    indexes = listOf(
-                        Index("game_id", IndexedColumn("game_id")),
-                        Index("player_id", IndexedColumn("player_id"))
+                        indexes = listOf(
+                            Index("game_id", IndexedColumn("game_id")),
+                            Index("player_id", IndexedColumn("player_id"))
+                        )
                     )
-                ),
-                )
-        )
-        //        .scope(scope)
-        .build()
-
-    init {
-        launch {
-            database.connect(
-                SupabaseConnector(
-                    supabaseUrl = "https://axvxgfwwlwjvjhtloygz.supabase.co",
-                    supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4dnhnZnd3bHdqdmpodGxveWd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTAwODM3NDYsImV4cCI6MjAyNTY1OTc0Nn0.3n-LKLDnhdjCDUbSAC1J3hs4mAgbiJca702QzkG1zq8",
-                    powerSyncEndpoint = "https://65f83ef9bae72d5b698f31aa.powersync.journeyapps.com"
                 )
             )
+            //        .scope(scope)
+            .build()
+
+    init {
+        val connector = SupabaseConnector(
+            supabaseClient = supabaseClient,
+            powerSyncEndpoint = "https://65f83ef9bae72d5b698f31aa.powersync.journeyapps.com"
+        )
+        launch {
+            database.connect(connector)
         }
     }
 
@@ -321,7 +319,7 @@ class Database(
             }
         }
     }
-    
+
     suspend fun deleteGame(id: String) {
         database.writeTransaction {
             database.execute(
@@ -342,4 +340,19 @@ class Database(
             )
         }
     }
+
+//    fun boardgames(): Flow<List<Boardgame>> = flowOf(emptyList())
+//    fun boardgame(id: String): Flow<Boardgame?> = flowOf(null)
+//    suspend fun addBoardgame(name: String, isCoop: Boolean) {}
+//    suspend fun deleteBoardgame(id: String) {}
+//    fun players(): Flow<List<Player>> = flowOf(emptyList())
+//    fun player(id: String): Flow<Player?> = flowOf(null)
+//    suspend fun addPlayer(name: String) {}
+//    suspend fun deletePlayer(id: String) {}
+//    fun games(): Flow<List<Game>> = flowOf(emptyList())
+//    fun boardgameGames(boardgameId: String): Flow<List<Game>> = flowOf(emptyList())
+//    fun playerGames(playerId: String): Flow<List<Pair<Game, Boardgame>>> = flowOf(emptyList())
+//    fun gamePlayers(gameId: String): Flow<List<Pair<Player, Boolean>>> = flowOf(emptyList())
+//    suspend fun addGame(boardgameId: String, date: Long, players: List<Pair<String, Boolean>>) {}
+//    suspend fun deleteGame(id: String) {}
 }

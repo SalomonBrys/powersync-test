@@ -24,14 +24,13 @@ object Players {
         
         return Mvi(
             firstModel = ::Model
-        ) { emit, scope ->
+        ) { emit ->
             
-            scope.launch {
+            launch {
                 database.players().collect { players ->
                     emit { copy(players = players) }
                 }
             }
-            
             
             OnIntent {
                 when (it) {

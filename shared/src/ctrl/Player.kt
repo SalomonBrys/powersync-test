@@ -31,9 +31,9 @@ object Player {
         
         return Mvi(
             firstModel = { Model(player) }
-        ) { emit, scope ->
+        ) { emit ->
 
-            scope.launch {
+            launch {
                 database.player(player.id).collect {
                     if (it != null) {
                         emit { copy(player = it) }
@@ -43,7 +43,7 @@ object Player {
                 }
             }
             
-            scope.launch {
+            launch {
                 database.playerGames(player.id)
                     .map { games ->
                         games.map { (game, boardgame) ->

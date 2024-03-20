@@ -31,9 +31,9 @@ object Boardgame {
         
         return Mvi(
             firstModel = { Model(boardgame) }
-        ) { emit, scope ->
+        ) { emit ->
 
-            scope.launch {
+            launch {
                 database.boardgame(boardgame.id).collect {
                     if (it != null) {
                         emit { copy(boardgame = it) }
@@ -43,7 +43,7 @@ object Boardgame {
                 }
             }
             
-            scope.launch {
+            launch {
                 database.boardgameGames(boardgame.id)
                     .map { games ->
                         games.map { game ->

@@ -42,21 +42,21 @@ object Games {
         
         return Mvi(
             firstModel = ::Model
-        ) { emit, scope ->
+        ) { emit ->
             
-            scope.launch {
+            launch {
                 database.boardgames().collect { boardgames ->
                     emit { copy(boardgames = boardgames) }
                 }
             }
             
-            scope.launch {
+            launch {
                 database.players().collect { players ->
                     emit { copy(players = players) }
                 }
             }
 
-            scope.launch {
+            launch {
                 combine(
                     database.games(),
                     database.boardgames()
